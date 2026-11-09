@@ -1,31 +1,63 @@
 # MPI Histogram Calculation
 
-Bu proje, **MPI (Message Passing Interface)** kütüphanesini kullanarak büyük bir veri dizisindeki sayıların frekansını (histogramını) paralel olarak hesaplar.
+This project computes the frequency distribution (histogram) of elements within a large dataset in parallel using the **MPI (Message Passing Interface)** framework.
 
-Uygulama, "Böl ve Yönet" (Divide and Conquer) yaklaşımını kullanır. Ana işlemci veriyi üretir, parçalara ayırır (`Scatter`), diğer işlemciler kendi parçalarını sayar ve sonuçlar tekrar ana işlemcide birleştirilir (`Reduce`).
+The implementation follows a "Divide and Conquer" approach: the root process (`Rank 0`) generates the data and partitions it across all available processes via `MPI_Scatter`[cite: 11]. Each worker computes a local histogram on its chunk, and the results are aggregated back into the global histogram at `Rank 0` using `MPI_Reduce` (`MPI_SUM`)[cite: 11].
 
-## 🚀 Özellikler
+---
 
-* **Veri Dağıtımı (MPI_Scatter):** Ana veri seti eşit parçalara bölünerek işlemcilere dağıtılır.
-* **Paralel Hesaplama:** Her işlemci (Rank) kendi yerel verisi üzerinde histogram hesaplar.
-* **Sonuç Birleştirme (MPI_Reduce):** Yerel sonuçlar toplanarak (`MPI_SUM`) ana işlemcide global histogram oluşturulur.
-* **Dinamik Kontrol:** İşlemci sayısının veri boyutunu tam bölüp bölmediği kontrol edilir.
+## 🚀 Key Features
 
-## 🛠️ Gereksinimler
+- **Workload Partitioning (`MPI_Scatter`):** The input array is divided into equal chunks and distributed to all processes[cite: 11].
+- **Parallel Computation:** Each rank calculates bin frequencies independently on its localized memory buffer[cite: 11].
+- **Reduction Aggregation (`MPI_Reduce`):** Local histogram arrays are summed element-wise across processes using `MPI_SUM`[cite: 11].
+- **Workload Validation:** Checks whether `ARRAY_SIZE` is evenly divisible by `size` before processing to prevent boundary violations[cite: 11].
 
-* **C++ Derleyicisi:** GCC (g++) veya MSVC.
-* **MPI Kütüphanesi:**
-  * **Linux:** OpenMPI veya MPICH (`sudo apt install openmpi-bin libopenmpi-dev`)
-  * **Windows:** Microsoft MPI (MS-MPI) SDK.
+---
 
-## 💻 Derleme ve Çalıştırma
+## 🛠️ Prerequisites
 
-Kodun derlenmesi ve çalıştırılması için MPI wrapper'larına ihtiyacınız vardır.
+- **C++ Compiler:** GCC (`g++`), Clang, or MSVC (supporting C++11 or newer)[cite: 11].
+- **MPI Implementation:**
+  - **Linux / macOS:** OpenMPI or MPICH (`sudo apt install openmpi-bin libopenmpi-dev`)
+  - **Windows:** Microsoft MPI (MS-MPI) SDK & Runtime.
 
-### Linux / macOS (OpenMPI)
+---
+
+## 💻 Build and Execution
+
+Compile and run the program using your platform's MPI wrappers.
+
+### Linux / macOS (OpenMPI / MPICH)
+
 ```bash
-# Derleme
-mpic++ -o mpi_app main.cpp
+# Compile
+mpic++ -O3 -o mpi_app main.cpp
 
-# Çalıştırma (Örnek: 4 işlemci ile)
-mpiexec -n 4 ./mpi_app
+# Execute (e.g., using 4 processes)
+mpirun -n 4 ./mpi_app
+```
+
+### Windows (MS-MPI)
+
+If compiling via MinGW / Command Prompt:
+
+```cmd
+:: Compile
+g++ -O3 -o mpi_app.exe main.cpp -I"%MSMPI_INC%" -L"%MSMPI_LIB64%" -lmsmpi
+
+:: Execute (e.g., using 4 processes)
+mpiexec -n 4 .\mpi_app.exe
+```
+
+---
+
+## 📊 Pipeline Parameters
+
+The core operational constants defined in the source code:
+
+| Parameter | Value | Description |
+| :--- | :--- | :--- |
+| `ARRAY_SIZE` | `100` | Total number of generated data elements[cite: 11]. |
+| `HIST_SIZE` | `10` | Total number of frequency bins (`[0 - 9]`)[cite: 11]. |
+| `chunk_size` | `ARRAY_SIZE / size` | Number of elements processed by each individual MPI rank[cite: 11]. |
